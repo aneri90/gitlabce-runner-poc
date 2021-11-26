@@ -1,0 +1,50 @@
+version: '3.7'
+
+services:
+  gitlab-web:
+    image: gitlab/gitlab-ce:14.5.0-ce.0
+    container_name: gitlab-web
+    hostname: gitlab-web
+    volumes:
+      - './storage/gitlab-config:/etc/gitlab'
+      - './storage/gitlab-logs:/var/log/gitlab'
+      - './storage/gitlab-data:/var/opt/gitlab'
+    ports:
+      - '8080:80'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab-web:8080'
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        nginx['redirect_http_to_https'] = false
+        letsencrypt['enable'] = false
+        gitlab_rails['initial_root_password'] = 'Test123#'
+        gitlab_rails['initial_shared_runners_registration_token'] = "XxRsU1rZhxXHtsQrH37x"
+    networks:
+      - gitlab-network
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:v14.5.0
+    container_name: gitlab-runner
+    hostname: gitlab-runner
+    volumes:
+      - './storage/runner-config:/etc/gitlab-runner'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    networks:
+      - gitlab-network
+
+  gitlab-runner-register:
+    build:
+      context: ./runner-register
+    container_name: gitlab-runner
+    hostname: gitlab-runner
+    volumes:
+      - './storage/runner-config:/etc/gitlab-runner'
+    networks:
+    - gitlab-network
+    depends_on:
+    - gitlab-web
+
+networks:
+  gitlab-network:
+    name: gitlab-network
